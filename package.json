@@ -1,0 +1,37 @@
+{
+  "name": "local-auto",
+  "version": "0.1.0",
+  "description": "Local automation CLI — AI-driven browser data extraction with scheduling and webhooks",
+  "type": "module",
+  "bin": {
+    "local-auto": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/daemon/index.ts",
+    "start": "node dist/daemon/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "node-cron": "^3.0.3",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "playwright": "^1.50.1",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

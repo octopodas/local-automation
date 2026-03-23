@@ -1,0 +1,32 @@
+# local-auto configuration
+daemon:
+  port: 3847
+  host: 127.0.0.1
+  maxConcurrentWorkers: 2
+
+ai:
+  provider: anthropic      # "anthropic" or "gemini"
+  model: claude-sonnet-4-6 # provider-specific model name
+  maxIterations: 20        # max AI action loop iterations per task
+
+# Sites to automate
+sites:
+  - name: my-dashboard
+    url: https://dashboard.example.com
+    login:
+      type: form
+      usernameField: "#email"
+      passwordField: "#password"
+      submitButton: "#login-btn"
+      credentials:
+        username: ${DASHBOARD_USER}
+        password: ${DASHBOARD_PASS}
+    tasks:
+      - name: pull-metrics
+        schedule: "0 */6 * * *"   # every 6 hours
+        prompt: "Navigate to the metrics page, extract the daily active users count and revenue figures"
+        output:
+          webhooks: true
+        retry:
+          maxAttempts: 3
+          backoffMs: 5000
