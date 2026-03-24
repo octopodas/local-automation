@@ -3,4 +3,6 @@ dist/
 results/
 .env
 *.log
+start-daemon.sh
+config.yaml
 ~/.local-auto/

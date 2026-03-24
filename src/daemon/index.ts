@@ -10,6 +10,7 @@ import {
 import { randomBytes } from "node:crypto";
 import { loadConfig } from "../config/loader.js";
 import { createLogger } from "../shared/logger.js";
+import { TelegramNotifier } from "./telegram-notifier.js";
 import { TaskManager } from "./task-manager.js";
 import { WebhookManager } from "./webhook-manager.js";
 import { Scheduler } from "./scheduler.js";
@@ -74,6 +75,18 @@ async function main(): Promise<void> {
   });
 
   const scheduler = new Scheduler(taskManager, webhookManager, logger);
+
+  // Set up Telegram notifications
+  if (config.notifications?.telegram) {
+    const telegram = new TelegramNotifier(config.notifications.telegram, logger);
+    taskManager.on("taskCompleted", (run, result) => {
+      telegram.notify(run, result).catch(() => {});
+    });
+    taskManager.on("taskFailed", (run, result) => {
+      telegram.notify(run, result).catch(() => {});
+    });
+    logger.info("Telegram notifications enabled");
+  }
 
   // Create HTTP server
   const startedAt = new Date();

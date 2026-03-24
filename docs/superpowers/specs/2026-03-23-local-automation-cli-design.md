@@ -106,9 +106,13 @@ sites:
           maxAttempts: 3
           backoffMs: 5000
 
-webhooks:
-  subscribers: []  # populated via API at runtime
+notifications:
+  telegram:
+    botToken: ${TELEGRAM_BOT_TOKEN}
+    chatId: ${TELEGRAM_CHAT_ID}
 ```
+
+Webhook subscribers are managed at runtime via the HTTP API and persisted in `state.json`, not in config.
 
 **Config file location:** The daemon looks for `config.yaml` in the following order:
 1. Path specified via `--config <path>` CLI flag
@@ -320,7 +324,8 @@ local-automation/
 │   │   ├── server.ts           # Fastify HTTP server
 │   │   ├── scheduler.ts        # Cron schedule manager
 │   │   ├── task-manager.ts     # Spawns & manages workers
-│   │   └── webhook-manager.ts  # Subscriber mgmt & delivery
+│   │   ├── webhook-manager.ts  # Subscriber mgmt & delivery
+│   │   └── telegram-notifier.ts # Telegram notification delivery
 │   ├── worker/
 │   │   ├── index.ts            # Worker entry point (child process)
 │   │   ├── browser-agent.ts    # Playwright + AI action loop

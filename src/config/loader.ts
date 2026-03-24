@@ -74,11 +74,12 @@ export function loadConfig(explicitPath?: string): {
   config: AppConfig;
   configDir: string;
 } {
-  // Load .env file if present (from cwd)
-  loadDotenv();
-
   const configPath = findConfigPath(explicitPath);
   const configDir = dirname(configPath);
+
+  // Load .env from config directory first, then cwd (earlier wins)
+  loadDotenv({ path: resolve(configDir, ".env") });
+  loadDotenv();
 
   const raw = readFileSync(configPath, "utf-8");
   const parsed = parseYaml(raw);

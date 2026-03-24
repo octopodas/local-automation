@@ -36,7 +36,7 @@ export function registerStartCommand(program: Command): void {
       mkdirSync(DATA_DIR, { recursive: true });
 
       // Spawn the daemon detached
-      const daemonPath = resolve(__dirname, "../daemon/index.js");
+      const daemonPath = resolve(__dirname, "../../daemon/index.js");
       const args: string[] = [];
       if (configPath) {
         args.push("--config", configPath);
