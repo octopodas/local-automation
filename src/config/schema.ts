@@ -47,10 +47,20 @@ export const aiSchema = z.object({
   maxIterations: z.number().int().min(1).default(20),
 });
 
+export const telegramSchema = z.object({
+  botToken: z.string().min(1),
+  chatId: z.string().min(1),
+});
+
+export const notificationsSchema = z.object({
+  telegram: telegramSchema.optional(),
+});
+
 export const appConfigSchema = z.object({
   daemon: daemonSchema.default({}),
   ai: aiSchema,
   sites: z.array(siteSchema).min(1),
+  notifications: notificationsSchema.optional(),
 });
 
 // Zod schema for AI actions (used to validate AI responses)

@@ -50,7 +50,7 @@ export function buildSystemPrompt(): string {
 
 You receive a screenshot and DOM snapshot of the current page. Based on the task prompt, decide what action to take next.
 
-Respond with a single JSON object (no markdown, no explanation) matching one of these action types:
+CRITICAL: You MUST respond with ONLY a single JSON object. No text before or after. No explanation. No markdown. Just raw JSON matching one of these action types:
 
 {"action":"click","selector":"<css-selector>"}
 {"action":"type","selector":"<css-selector>","text":"<text-to-type>"}
@@ -64,9 +64,11 @@ Respond with a single JSON object (no markdown, no explanation) matching one of 
 Guidelines:
 - Use CSS selectors from the DOM snapshot for reliable element targeting
 - Use "extract" to pull data from the page, then "done" when you have all requested data
-- If login is required, use the provided login hints to fill credentials
+- If login is required, use the provided credentials — type the username, then password, then click submit
 - If an action fails, you'll see the error — try an alternative approach
-- When you have all the requested data, use "done" to finish`;
+- When you have all the requested data, use "done" to finish
+
+REMEMBER: Output ONLY valid JSON. No explanations, no thinking, no text. Just one JSON object.`;
 }
 
 /**
@@ -81,9 +83,10 @@ export function buildUserMessage(dom: string, context: TaskContext): string {
 
   if (context.loginHints) {
     parts.push(
-      `Login hints: username field="${context.loginHints.usernameField}", ` +
-        `password field="${context.loginHints.passwordField}", ` +
-        `submit button="${context.loginHints.submitButton}"`
+      `Login required. Use these credentials:\n` +
+        `  Username field: "${context.loginHints.usernameField}" → type "${context.loginHints.credentials.username}"\n` +
+        `  Password field: "${context.loginHints.passwordField}" → type "${context.loginHints.credentials.password}"\n` +
+        `  Submit button: "${context.loginHints.submitButton}"`
     );
   }
 

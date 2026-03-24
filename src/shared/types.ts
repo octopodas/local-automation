@@ -35,6 +35,16 @@ export interface AppConfig {
   daemon: DaemonConfig;
   ai: AIConfig;
   sites: SiteConfig[];
+  notifications?: NotificationsConfig;
+}
+
+export interface NotificationsConfig {
+  telegram?: TelegramConfig;
+}
+
+export interface TelegramConfig {
+  botToken: string;
+  chatId: string;
 }
 
 export interface DaemonConfig {

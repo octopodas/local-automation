@@ -9,8 +9,11 @@ npm install
 cp .env.example .env          # Add your API keys
 cp config.yaml.example config.yaml  # Configure your sites
 npm run build
-node dist/cli/index.js start  # Start the daemon
+npm link                      # Make `local-auto` available globally
+local-auto start              # Start the daemon
 ```
+
+To unlink: `npm unlink -g local-auto`.
 
 ## Development
 
@@ -36,12 +39,14 @@ npm run dev      # Dev mode with watch
 - `src/daemon/task-manager.ts` — Worker spawning, retry, watchdog
 - `src/daemon/server.ts` — HTTP API routes
 - `src/config/schema.ts` — Zod schemas for config and AI actions
+- `src/daemon/telegram-notifier.ts` — Telegram notification delivery
 
 ## Config
 
 Config file is `config.yaml` (looked up in cwd then `~/.local-auto/`).
 Credentials use env var interpolation: `${VAR_NAME}`.
 API keys go in `.env` file.
+Telegram notifications configured via `notifications.telegram` in config.
 
 ## CLI Commands
 

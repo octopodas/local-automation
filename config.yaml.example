@@ -11,22 +11,27 @@ ai:
 
 # Sites to automate
 sites:
-  - name: my-dashboard
-    url: https://dashboard.example.com
+  - name: example-site
+    url: https://example.com/dashboard
     login:
       type: form
-      usernameField: "#email"
+      usernameField: "#username"
       passwordField: "#password"
-      submitButton: "#login-btn"
+      submitButton: "submit"
       credentials:
         username: ${DASHBOARD_USER}
         password: ${DASHBOARD_PASS}
     tasks:
-      - name: pull-metrics
-        schedule: "0 */6 * * *"   # every 6 hours
-        prompt: "Navigate to the metrics page, extract the daily active users count and revenue figures"
+      - name: pull-data
+        schedule: "5 0,9,15,21 * * *"
+        prompt: "extract the relevant data from the dashboard"
         output:
           webhooks: true
         retry:
           maxAttempts: 3
           backoffMs: 5000
+
+notifications:
+  telegram:
+    botToken: ${TELEGRAM_BOT_TOKEN}
+    chatId: ${TELEGRAM_CHAT_ID}
