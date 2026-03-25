@@ -1,0 +1,117 @@
+%%{ init: { "theme": "base", "themeVariables": { "fontSize": "14px" } } }%%
+graph TB
+    %% ── External actors ──
+    User([User])
+    CronTrigger([Cron Schedule])
+    TelegramAPI([Telegram Bot API])
+    WebhookSub([Webhook Subscribers])
+    Website([Target Websites])
+
+    %% ── CLI Layer ──
+    subgraph CLI ["CLI  (src/cli/)"]
+        CLIEntry["index.ts<br/>Commander CLI"]
+        CLIClient["client.ts<br/>HTTP Client"]
+        CMDStart["start / stop"]
+        CMDRun["run / status"]
+        CMDList["list / logs"]
+        CMDWebhook["webhook"]
+    end
+
+    %% ── Daemon Layer ──
+    subgraph Daemon ["Daemon  (src/daemon/)"]
+        DaemonEntry["index.ts<br/>Daemon Entry"]
+        Server["server.ts<br/>Fastify HTTP API"]
+        TaskMgr["task-manager.ts<br/>Queue &amp; Worker Spawning"]
+        Scheduler["scheduler.ts<br/>node-cron Scheduling"]
+        WebhookMgr["webhook-manager.ts<br/>Event Delivery"]
+        Telegram["telegram-notifier.ts<br/>Notifications"]
+    end
+
+    %% ── Worker Layer ──
+    subgraph Worker ["Worker  (src/worker/)  — child process"]
+        WorkerEntry["index.ts<br/>IPC Handler"]
+        BrowserAgent["browser-agent.ts<br/>AI Action Loop"]
+        Actions["actions.ts<br/>Action Executor"]
+    end
+
+    %% ── AI Layer ──
+    subgraph AI ["AI Providers  (src/ai/)"]
+        Provider["provider.ts<br/>Interface &amp; Prompt Builder"]
+        Anthropic["anthropic.ts<br/>Claude Vision"]
+        Gemini["gemini.ts<br/>Gemini Vision"]
+    end
+
+    %% ── Config Layer ──
+    subgraph Config ["Config  (src/config/)"]
+        Loader["loader.ts<br/>YAML + .env Loader"]
+        Schema["schema.ts<br/>Zod Validation"]
+    end
+
+    %% ── Shared Layer ──
+    subgraph Shared ["Shared  (src/shared/)"]
+        Types["types.ts<br/>Central Types"]
+        Logger["logger.ts<br/>Pino Logger"]
+    end
+
+    %% ── Connections: User → CLI ──
+    User -->|shell commands| CLIEntry
+    CLIEntry --> CMDStart & CMDRun & CMDList & CMDWebhook
+    CMDStart & CMDRun & CMDList & CMDWebhook --> CLIClient
+
+    %% ── CLI → Daemon (HTTP) ──
+    CLIClient -- "HTTP + Bearer token" --> Server
+
+    %% ── Daemon internal ──
+    DaemonEntry --> Server & TaskMgr & Scheduler & WebhookMgr & Telegram
+    Server -- "run / status / logs" --> TaskMgr
+    Server -- "CRUD" --> WebhookMgr
+    Scheduler -- "cron fires" --> TaskMgr
+    CronTrigger -.->|triggers| Scheduler
+    TaskMgr -- "taskCompleted / taskFailed events" --> Telegram & WebhookMgr
+
+    %% ── Daemon → Worker (IPC) ──
+    TaskMgr -- "fork() + IPC messages" --> WorkerEntry
+
+    %% ── Worker internal ──
+    WorkerEntry --> BrowserAgent
+    BrowserAgent --> Actions
+    BrowserAgent --> Provider
+
+    %% ── AI internal ──
+    Provider --> Anthropic & Gemini
+
+    %% ── Worker → Browser ──
+    Actions -- "Playwright" --> Website
+    BrowserAgent -- "screenshot + DOM" --> Provider
+
+    %% ── Outbound notifications ──
+    Telegram -- "HTTP POST" --> TelegramAPI
+    WebhookMgr -- "HTTP POST w/ retry" --> WebhookSub
+
+    %% ── Config used everywhere ──
+    Loader --> Schema
+    DaemonEntry -. "loads config" .-> Loader
+    WorkerEntry -. "receives config" .-> Types
+
+    %% ── Shared used everywhere ──
+    Daemon -. uses .-> Logger
+    Worker -. uses .-> Logger
+    Daemon -. uses .-> Types
+    Worker -. uses .-> Types
+
+    %% ── Styles ──
+    classDef cliStyle fill:#4A90D9,stroke:#2C5F8A,color:#fff
+    classDef daemonStyle fill:#7B68EE,stroke:#5A4CB5,color:#fff
+    classDef workerStyle fill:#E67E22,stroke:#B35F18,color:#fff
+    classDef aiStyle fill:#2ECC71,stroke:#1F8C4D,color:#fff
+    classDef configStyle fill:#95A5A6,stroke:#6B7B7C,color:#fff
+    classDef sharedStyle fill:#BDC3C7,stroke:#8E9699,color:#333
+    classDef externalStyle fill:#fff,stroke:#333,color:#333
+
+    class CLIEntry,CLIClient,CMDStart,CMDRun,CMDList,CMDWebhook cliStyle
+    class DaemonEntry,Server,TaskMgr,Scheduler,WebhookMgr,Telegram daemonStyle
+    class WorkerEntry,BrowserAgent,Actions workerStyle
+    class Provider,Anthropic,Gemini aiStyle
+    class Loader,Schema configStyle
+    class Types,Logger sharedStyle
+    class User,CronTrigger,TelegramAPI,WebhookSub,Website externalStyle
