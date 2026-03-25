@@ -6,3 +6,4 @@ results/
 start-daemon.sh
 config.yaml
 ~/.local-auto/
+add-key.sh
