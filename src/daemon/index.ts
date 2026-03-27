@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import {
   mkdirSync,
   writeFileSync,
+  appendFileSync,
   readFileSync,
   existsSync,
   unlinkSync,
@@ -146,6 +147,15 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("Fatal error starting daemon:", err.message);
+  // stdio may be "ignore" when spawned by CLI, so also write to the log file
+  const msg = err.code === "EADDRINUSE"
+    ? `Port ${err.port ?? "unknown"} is already in use — is another daemon or process running?`
+    : `Fatal error starting daemon: ${err.message}`;
+  console.error(msg);
+  try {
+    appendFileSync(LOG_PATH, JSON.stringify({ level: 60, time: Date.now(), name: "daemon", msg }) + "\n");
+  } catch {
+    // Best-effort
+  }
   process.exit(1);
 });
