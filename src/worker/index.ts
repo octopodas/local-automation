@@ -34,11 +34,13 @@ process.on("message", async (msg: DaemonMessage) => {
         aiConfig,
         aiProvider,
         logger,
-        onProgress: (iteration, action) => {
+        onProgress: (event) => {
           send({
             type: "progress",
-            iteration,
-            action,
+            iteration: event.iteration,
+            step: event.step,
+            message: event.message,
+            thinking: event.thinking,
           });
         },
       });

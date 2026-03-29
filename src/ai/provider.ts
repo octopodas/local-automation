@@ -2,12 +2,17 @@ import type { AIAction, TaskContext } from "../shared/types.js";
 import { aiActionSchema } from "../config/schema.js";
 import type { Logger } from "pino";
 
+export interface AIResponse {
+  action: AIAction;
+  thinking?: string;
+}
+
 export interface AIProvider {
   analyzeScreenshot(
     screenshot: Buffer,
     dom: string,
     context: TaskContext
-  ): Promise<AIAction>;
+  ): Promise<AIResponse>;
 }
 
 /**
