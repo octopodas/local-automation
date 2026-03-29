@@ -96,8 +96,17 @@ export interface RetryConfig {
 
 // --- Worker IPC Messages ---
 
+export type ProgressStep =
+  | "navigate"
+  | "session"
+  | "capture"
+  | "login-detect"
+  | "ai-request"
+  | "ai-response"
+  | "action-result";
+
 export type WorkerMessage =
-  | { type: "progress"; iteration: number; action: string; screenshot?: string }
+  | { type: "progress"; iteration: number; step: ProgressStep; message: string; thinking?: string; screenshot?: string }
   | { type: "result"; success: true; data: Record<string, unknown>; summary: string }
   | { type: "error"; message: string; code: string; retryable: boolean };
 
@@ -106,6 +115,14 @@ export type DaemonMessage =
   | { type: "cancel" };
 
 // --- Task execution state ---
+
+export interface ProgressEntry {
+  iteration: number;
+  step: ProgressStep;
+  message: string;
+  thinking?: string;
+  timestamp: string;
+}
 
 export interface TaskRun {
   id: string;
@@ -118,6 +135,7 @@ export interface TaskRun {
   completedAt?: string;
   result?: TaskResult;
   error?: string;
+  progress?: ProgressEntry[];
 }
 
 export interface TaskResult {

@@ -167,9 +167,18 @@ export class TaskManager extends EventEmitter {
       switch (msg.type) {
         case "progress":
           this.logger.info(
-            { taskKey, iteration: msg.iteration, action: msg.action },
-            "Task progress"
+            { taskKey, iteration: msg.iteration, step: msg.step },
+            msg.message
           );
+          // Store progress on the task run
+          if (!run.progress) run.progress = [];
+          run.progress.push({
+            iteration: msg.iteration,
+            step: msg.step,
+            message: msg.message,
+            thinking: msg.thinking,
+            timestamp: new Date().toISOString(),
+          });
           this.emit("progress", run.id, msg);
           break;
 

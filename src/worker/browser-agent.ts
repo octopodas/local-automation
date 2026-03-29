@@ -12,10 +12,18 @@ import type {
   TaskContext,
   ActionHistoryEntry,
   TaskResult,
+  ProgressStep,
 } from "../shared/types.js";
 import type { Logger } from "pino";
 
 const SESSIONS_DIR = resolve(homedir(), ".local-auto", "sessions");
+
+export interface ProgressEvent {
+  iteration: number;
+  step: ProgressStep;
+  message: string;
+  thinking?: string;
+}
 
 export interface BrowserAgentOptions {
   siteConfig: SiteConfig;
@@ -23,7 +31,20 @@ export interface BrowserAgentOptions {
   aiConfig: AIConfig;
   aiProvider: AIProvider;
   logger: Logger;
-  onProgress?: (iteration: number, action: string) => void;
+  onProgress?: (event: ProgressEvent) => void;
+}
+
+function actionSummary(action: AIAction): string {
+  switch (action.action) {
+    case "click": return `click → ${action.selector}`;
+    case "type": return `type "${action.text}" → ${action.selector}`;
+    case "select": return `select "${action.value}" → ${action.selector}`;
+    case "navigate": return `navigate → ${action.url}`;
+    case "scroll": return `scroll ${action.direction}`;
+    case "wait": return `wait ${action.ms}ms`;
+    case "extract": return `extract ${action.format} → ${action.selector}`;
+    case "done": return `done`;
+  }
 }
 
 export async function runBrowserAgent(
@@ -46,13 +67,16 @@ export async function runBrowserAgent(
       logger.info({ site: siteConfig.name }, "Restoring saved session");
       const storageState = JSON.parse(readFileSync(sessionPath, "utf-8"));
       context = await browser.newContext({ storageState });
+      onProgress?.({ iteration: 0, step: "session", message: `Restored saved session for ${siteConfig.name}` });
     } else {
       context = await browser.newContext();
+      onProgress?.({ iteration: 0, step: "session", message: "Starting new browser session" });
     }
 
     const page = await context.newPage();
 
     // Navigate to site
+    onProgress?.({ iteration: 0, step: "navigate", message: `Navigating to ${siteConfig.url}` });
     await page.goto(siteConfig.url, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
@@ -64,16 +88,19 @@ export async function runBrowserAgent(
     const maxIterations = aiConfig.maxIterations;
 
     for (let iteration = 1; iteration <= maxIterations; iteration++) {
-      // Take screenshot
+      // Take screenshot + DOM snapshot
+      onProgress?.({ iteration, step: "capture", message: "Capturing page screenshot and DOM" });
       const screenshot = await page.screenshot({ type: "png" });
-
-      // Get DOM snapshot (accessibility tree)
       const dom = await getAccessibleDom(page);
 
       // Check if we're on a login page and provide hints
       const loginHints = siteConfig.login && (await isLoginPage(page, siteConfig))
         ? siteConfig.login
         : undefined;
+
+      if (loginHints) {
+        onProgress?.({ iteration, step: "login-detect", message: "Login page detected, will provide credentials" });
+      }
 
       // Build context for AI
       const taskContext: TaskContext = {
@@ -88,11 +115,22 @@ export async function runBrowserAgent(
       };
 
       // Get AI decision
+      onProgress?.({ iteration, step: "ai-request", message: "Requesting AI decision" });
       logger.info({ iteration, maxIterations }, "Requesting AI action");
-      const action = await aiProvider.analyzeScreenshot(screenshot, dom, taskContext);
+      const aiResponse = await aiProvider.analyzeScreenshot(screenshot, dom, taskContext);
+      const action = aiResponse.action;
       logger.info({ iteration, action: action.action }, "AI returned action");
 
-      onProgress?.(iteration, action.action);
+      if (aiResponse.thinking) {
+        logger.info({ iteration }, "AI thinking: %s", aiResponse.thinking.slice(0, 500));
+      }
+
+      onProgress?.({
+        iteration,
+        step: "ai-response",
+        message: actionSummary(action),
+        thinking: aiResponse.thinking,
+      });
 
       // Handle "done" action
       if (action.action === "done") {
@@ -119,10 +157,12 @@ export async function runBrowserAgent(
 
       if (result.success) {
         lastError = undefined;
+        onProgress?.({ iteration, step: "action-result", message: "Action succeeded" });
         // Wait briefly for page to settle after action
         await page.waitForTimeout(300);
       } else {
         lastError = result.error;
+        onProgress?.({ iteration, step: "action-result", message: `Action failed: ${result.error}` });
         logger.warn(
           { iteration, action: action.action, error: result.error },
           "Action failed"

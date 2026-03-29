@@ -178,6 +178,10 @@ export function createServer(deps: ServerDeps): FastifyInstance {
       Connection: "keep-alive",
     });
 
+    const onProgress = (_taskId: string, msg: unknown) => {
+      reply.raw.write(`event: progress\ndata: ${JSON.stringify(msg)}\n\n`);
+    };
+
     const onCompleted = (_run: unknown, result: unknown) => {
       reply.raw.write(`event: log\ndata: ${JSON.stringify(result)}\n\n`);
     };
@@ -186,10 +190,12 @@ export function createServer(deps: ServerDeps): FastifyInstance {
       reply.raw.write(`event: log\ndata: ${JSON.stringify(result)}\n\n`);
     };
 
+    taskManager.on("progress", onProgress);
     taskManager.on("taskCompleted", onCompleted);
     taskManager.on("taskFailed", onFailed);
 
     request.raw.on("close", () => {
+      taskManager.off("progress", onProgress);
       taskManager.off("taskCompleted", onCompleted);
       taskManager.off("taskFailed", onFailed);
     });
