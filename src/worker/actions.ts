@@ -18,17 +18,17 @@ export async function executeAction(
   try {
     switch (action.action) {
       case "click": {
-        await page.click(action.selector, { timeout: 10000 });
+        await page.click(action.selector, { timeout: 30000 });
         return { success: true };
       }
 
       case "type": {
-        await page.fill(action.selector, action.text, { timeout: 10000 });
+        await page.fill(action.selector, action.text, { timeout: 30000 });
         return { success: true };
       }
 
       case "select": {
-        await page.selectOption(action.selector, action.value, { timeout: 10000 });
+        await page.selectOption(action.selector, action.value, { timeout: 30000 });
         return { success: true };
       }
 
@@ -63,7 +63,7 @@ export async function executeAction(
       }
 
       case "extract": {
-        const element = await page.waitForSelector(action.selector, { timeout: 10000 });
+        const element = await page.waitForSelector(action.selector, { timeout: 30000 });
         if (!element) {
           return { success: false, error: `Element not found: ${action.selector}` };
         }
