@@ -80,6 +80,7 @@ export const aiActionSchema = z.discriminatedUnion("action", [
     selector: z.string(),
     format: z.enum(["text", "html", "table"]),
   }),
+  z.object({ action: z.literal("download"), selector: z.string() }),
   z.object({
     action: z.literal("done"),
     result: z.record(z.unknown()),

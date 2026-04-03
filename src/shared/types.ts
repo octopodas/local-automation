@@ -8,6 +8,7 @@ export type AIAction =
   | { action: "scroll"; direction: "up" | "down" | "left" | "right"; amount?: number }
   | { action: "wait"; ms: number }
   | { action: "extract"; selector: string; format: "text" | "html" | "table" }
+  | { action: "download"; selector: string }
   | { action: "done"; result: Record<string, unknown>; summary: string };
 
 // --- Task Context (sent to AI on each iteration) ---
@@ -27,6 +28,7 @@ export interface ActionHistoryEntry {
   action: AIAction;
   success: boolean;
   error?: string;
+  data?: unknown;
 }
 
 // --- Config types ---

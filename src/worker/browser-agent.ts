@@ -43,6 +43,7 @@ function actionSummary(action: AIAction): string {
     case "scroll": return `scroll ${action.direction}`;
     case "wait": return `wait ${action.ms}ms`;
     case "extract": return `extract ${action.format} → ${action.selector}`;
+    case "download": return `download → ${action.selector}`;
     case "done": return `done`;
   }
 }
@@ -153,6 +154,7 @@ export async function runBrowserAgent(
         action,
         success: result.success,
         error: result.error,
+        data: result.data,
       });
 
       if (result.success) {
