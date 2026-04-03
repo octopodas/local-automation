@@ -29,7 +29,7 @@ describe("executeAction", () => {
       selector: "#btn",
     });
     expect(result.success).toBe(true);
-    expect(page.click).toHaveBeenCalledWith("#btn", { timeout: 10000 });
+    expect(page.click).toHaveBeenCalledWith("#btn", { timeout: 30000 });
   });
 
   it("handles type action", async () => {
@@ -41,7 +41,7 @@ describe("executeAction", () => {
     });
     expect(result.success).toBe(true);
     expect(page.fill).toHaveBeenCalledWith("#email", "test@example.com", {
-      timeout: 10000,
+      timeout: 30000,
     });
   });
 
@@ -54,7 +54,7 @@ describe("executeAction", () => {
     });
     expect(result.success).toBe(true);
     expect(page.selectOption).toHaveBeenCalledWith("#dropdown", "option1", {
-      timeout: 10000,
+      timeout: 30000,
     });
   });
 

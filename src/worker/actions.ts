@@ -1,5 +1,10 @@
 import type { Page } from "playwright";
+import { resolve } from "node:path";
+import { homedir } from "node:os";
+import { mkdirSync } from "node:fs";
 import type { AIAction } from "../shared/types.js";
+
+const DOWNLOADS_DIR = resolve(homedir(), "Downloads");
 
 export interface ActionResult {
   success: boolean;
@@ -103,6 +108,18 @@ export async function executeAction(
         }
 
         return { success: true, data };
+      }
+
+      case "download": {
+        mkdirSync(DOWNLOADS_DIR, { recursive: true });
+        const [download] = await Promise.all([
+          page.waitForEvent("download", { timeout: 30000 }),
+          page.click(action.selector, { timeout: 30000 }),
+        ]);
+        const filename = download.suggestedFilename();
+        const filePath = resolve(DOWNLOADS_DIR, filename);
+        await download.saveAs(filePath);
+        return { success: true, data: { filePath, filename } };
       }
 
       case "done": {

@@ -64,11 +64,13 @@ CRITICAL: You MUST respond with ONLY a single JSON object. No text before or aft
 {"action":"scroll","direction":"up|down|left|right","amount":<pixels>}
 {"action":"wait","ms":<milliseconds>}
 {"action":"extract","selector":"<css-selector>","format":"text|html|table"}
+{"action":"download","selector":"<css-selector>"}
 {"action":"done","result":{<extracted-data>},"summary":"<human-readable-summary>"}
 
 Guidelines:
 - Use CSS selectors from the DOM snapshot for reliable element targeting
 - Use "extract" to pull data from the page, then "done" when you have all requested data
+- Use "download" to click a link/button that triggers a file download — the file is saved automatically
 - If login is required, use the provided credentials — type the username, then password, then click submit
 - If an action fails, you'll see the error — try an alternative approach
 - When you have all the requested data, use "done" to finish
@@ -102,7 +104,10 @@ export function buildUserMessage(dom: string, context: TaskContext): string {
   if (context.actionHistory.length > 0) {
     const history = context.actionHistory
       .map((h, i) => {
-        const status = h.success ? "OK" : `FAILED: ${h.error}`;
+        let status = h.success ? "OK" : `FAILED: ${h.error}`;
+        if (h.success && h.data) {
+          status += ` — ${JSON.stringify(h.data)}`;
+        }
         return `  ${i + 1}. ${JSON.stringify(h.action)} → ${status}`;
       })
       .join("\n");
