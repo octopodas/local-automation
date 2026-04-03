@@ -30,6 +30,11 @@ sites:
         retry:
           maxAttempts: 3
           backoffMs: 5000
+      - name: export-report
+        prompt: "Use the download action on selector a.export-btn to download the report CSV. Then immediately call done."
+        retry:
+          maxAttempts: 2
+          backoffMs: 5000
 
 notifications:
   telegram:
