@@ -5,8 +5,12 @@ daemon:
   maxConcurrentWorkers: 2
 
 ai:
-  provider: anthropic      # "anthropic" or "gemini"
+  provider: anthropic      # "anthropic" | "gemini" | "opencode"
   model: claude-sonnet-4-6 # provider-specific model name
+  # OpenCode Zen example (OpenAI-compatible gateway — needs OPEN_CODE_ZEN_KEY).
+  # Pick a vision-capable model from https://opencode.ai/docs/zen/
+  #provider: opencode
+  #model: glm-4.5v
   maxIterations: 20        # max AI action loop iterations per task
 
 # Sites to automate
