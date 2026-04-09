@@ -120,16 +120,19 @@ export function buildUserMessage(dom: string, context: TaskContext): string {
 }
 
 export async function createAIProvider(
-  provider: "anthropic" | "gemini",
+  provider: "anthropic" | "gemini" | "opencode",
   model: string,
   logger: Logger
 ): Promise<AIProvider> {
-  // Dynamic import to avoid loading both SDKs
+  // Dynamic import to avoid loading every SDK up front
   if (provider === "anthropic") {
     const { AnthropicProvider } = await import("./anthropic.js");
     return new AnthropicProvider(model, logger);
-  } else {
+  } else if (provider === "gemini") {
     const { GeminiProvider } = await import("./gemini.js");
     return new GeminiProvider(model, logger);
+  } else {
+    const { OpenCodeProvider } = await import("./opencode.js");
+    return new OpenCodeProvider(model, logger);
   }
 }
