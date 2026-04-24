@@ -29,6 +29,7 @@ export interface BrowserAgentOptions {
   siteConfig: SiteConfig;
   taskConfig: TaskConfig;
   aiConfig: AIConfig;
+  params: Record<string, string>;
   aiProvider: AIProvider;
   logger: Logger;
   onProgress?: (event: ProgressEvent) => void;
@@ -51,8 +52,13 @@ function actionSummary(action: AIAction): string {
 export async function runBrowserAgent(
   opts: BrowserAgentOptions
 ): Promise<TaskResult> {
-  const { siteConfig, taskConfig, aiConfig, aiProvider, logger, onProgress } = opts;
+  const { siteConfig, taskConfig, aiConfig, params, aiProvider, logger, onProgress } = opts;
   const startTime = Date.now();
+
+  const interpolatedPrompt = Object.entries(params).reduce(
+    (prompt, [key, value]) => prompt.replace(new RegExp(`\\{${key}\\}`, "g"), value),
+    taskConfig.prompt
+  );
 
   let browser: Browser | null = null;
   let context: BrowserContext | null = null;
@@ -107,7 +113,7 @@ export async function runBrowserAgent(
       const taskContext: TaskContext = {
         siteConfig,
         taskConfig,
-        prompt: taskConfig.prompt,
+        prompt: interpolatedPrompt,
         actionHistory,
         iteration,
         maxIterations,
@@ -135,6 +141,21 @@ export async function runBrowserAgent(
 
       // Handle "done" action
       if (action.action === "done") {
+        // Validate that result contains actual data, not selector templates
+        const hasBogusValues = Object.values(action.result).some(
+          (v) =>
+            typeof v === "string" &&
+            /\{\{|document\.querySelector|\.textContent|\.innerHTML|\.innerText/.test(v)
+        );
+        if (hasBogusValues) {
+          lastError =
+            "Result contains selector templates or code instead of actual data. Use 'extract' to read real values from the page, then include the actual text/numbers in the 'done' result.";
+          actionHistory.push({ action, success: false, error: lastError });
+          logger.warn({ iteration }, "AI returned selector templates instead of real data, retrying");
+          onProgress?.({ iteration, step: "action-result", message: `Rejected: ${lastError}` });
+          continue;
+        }
+
         // Save session after successful task completion
         await saveSession(context, siteConfig.name);
 

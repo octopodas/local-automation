@@ -58,9 +58,9 @@ export function createServer(deps: ServerDeps): FastifyInstance {
   // --- Tasks ---
 
   app.post<{
-    Body: { site: string; task: string };
+    Body: { site: string; task: string; params?: Record<string, string> };
   }>("/api/tasks/run", async (request, reply) => {
-    const { site: siteName, task: taskName } = request.body;
+    const { site: siteName, task: taskName, params = {} } = request.body;
 
     const siteConfig = config.sites.find((s) => s.name === siteName);
     if (!siteConfig) {
@@ -75,7 +75,7 @@ export function createServer(deps: ServerDeps): FastifyInstance {
     }
 
     // Start the task asynchronously
-    const runPromise = taskManager.runTask(siteConfig, taskConfig, "manual");
+    const runPromise = taskManager.runTask(siteConfig, taskConfig, "manual", params);
 
     // Get the task run that was just created
     const allTasks = taskManager.getAllTasks();

@@ -71,11 +71,25 @@ function displayProgress(entries: ProgressEntry[], startIndex: number): void {
   }
 }
 
+function parseParams(input: string | undefined): Record<string, string> {
+  if (!input) return {};
+  const params: Record<string, string> = {};
+  for (const pair of input.split(",")) {
+    const [key, ...rest] = pair.split("=");
+    if (key && rest.length > 0) {
+      params[key.trim()] = rest.join("=").trim();
+    }
+  }
+  return params;
+}
+
 export function registerRunCommand(program: Command): void {
   program
     .command("run <site> <task>")
     .description("Run a task immediately")
+    .option("-p, --params <key=value,...>", "Task parameters (e.g. period=this_month)")
     .action(async function (this: Command, site: string, task: string) {
+      const params = parseParams(this.opts().params);
       const format = getFormat(this);
 
       try {
@@ -83,6 +97,7 @@ export function registerRunCommand(program: Command): void {
         const { status, data } = await apiRequest("POST", "/api/tasks/run", {
           site,
           task,
+          params,
         });
 
         if (status === 404) {

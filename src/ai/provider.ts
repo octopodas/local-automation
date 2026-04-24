@@ -74,6 +74,7 @@ Guidelines:
 - If login is required, use the provided credentials — type the username, then password, then click submit
 - If an action fails, you'll see the error — try an alternative approach
 - When you have all the requested data, use "done" to finish
+- CRITICAL: The "done" result must contain actual data values read from the page, NEVER CSS selectors, JavaScript expressions, template strings like {{...}}, or document.querySelector(...) calls. Use "extract" to read real values from the page first, then put the actual text/numbers in the "done" result.
 
 REMEMBER: Output ONLY valid JSON. No explanations, no thinking, no text. Just one JSON object.`;
 }

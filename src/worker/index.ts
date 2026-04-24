@@ -18,7 +18,7 @@ process.on("message", async (msg: DaemonMessage) => {
   }
 
   if (msg.type === "execute") {
-    const { taskConfig, siteConfig, aiConfig } = msg;
+    const { taskConfig, siteConfig, aiConfig, params } = msg;
 
     logger.info(
       { site: siteConfig.name, task: taskConfig.name },
@@ -32,6 +32,7 @@ process.on("message", async (msg: DaemonMessage) => {
         siteConfig,
         taskConfig,
         aiConfig,
+        params,
         aiProvider,
         logger,
         onProgress: (event) => {
