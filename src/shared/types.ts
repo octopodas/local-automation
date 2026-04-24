@@ -113,7 +113,7 @@ export type WorkerMessage =
   | { type: "error"; message: string; code: string; retryable: boolean };
 
 export type DaemonMessage =
-  | { type: "execute"; taskConfig: TaskConfig; siteConfig: SiteConfig; aiConfig: AIConfig }
+  | { type: "execute"; taskConfig: TaskConfig; siteConfig: SiteConfig; aiConfig: AIConfig; params: Record<string, string> }
   | { type: "cancel" };
 
 // --- Task execution state ---

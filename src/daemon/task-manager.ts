@@ -38,6 +38,7 @@ export class TaskManager extends EventEmitter {
     aiConfig: AIConfig;
     resolve: (result: TaskResult) => void;
     reject: (error: Error) => void;
+    params: Record<string, string>;
   }> = [];
   private maxConcurrent: number;
   private aiConfig: AIConfig;
@@ -65,7 +66,8 @@ export class TaskManager extends EventEmitter {
   async runTask(
     siteConfig: SiteConfig,
     taskConfig: TaskConfig,
-    triggeredBy: "schedule" | "manual"
+    triggeredBy: "schedule" | "manual",
+    params: Record<string, string> = {}
   ): Promise<TaskResult> {
     const taskKey = `${siteConfig.name}/${taskConfig.name}`;
 
@@ -96,11 +98,12 @@ export class TaskManager extends EventEmitter {
           aiConfig: this.aiConfig,
           resolve,
           reject,
+          params,
         });
         return;
       }
 
-      this.spawnWorker(run, siteConfig, taskConfig, resolve, reject);
+      this.spawnWorker(run, siteConfig, taskConfig, resolve, reject, params);
     });
   }
 
@@ -121,7 +124,8 @@ export class TaskManager extends EventEmitter {
     siteConfig: SiteConfig,
     taskConfig: TaskConfig,
     resolve: (result: TaskResult) => void,
-    reject: (error: Error) => void
+    reject: (error: Error) => void,
+    params: Record<string, string>
   ): void {
     const taskKey = `${siteConfig.name}/${taskConfig.name}`;
     this.logger.info(
@@ -157,6 +161,7 @@ export class TaskManager extends EventEmitter {
       taskConfig,
       siteConfig,
       aiConfig: this.aiConfig,
+      params,
     };
     worker.send(message);
 
@@ -208,7 +213,8 @@ export class TaskManager extends EventEmitter {
             msg,
             startTime,
             resolve,
-            reject
+            reject,
+            params
           );
           break;
       }
@@ -216,7 +222,6 @@ export class TaskManager extends EventEmitter {
 
     worker.on("exit", (code) => {
       if (this.runningTasks.has(run.id)) {
-        // Worker exited unexpectedly
         this.handleWorkerError(
           run,
           siteConfig,
@@ -229,7 +234,8 @@ export class TaskManager extends EventEmitter {
           },
           startTime,
           resolve,
-          reject
+          reject,
+          params
         );
       }
     });
@@ -248,7 +254,8 @@ export class TaskManager extends EventEmitter {
           },
           startTime,
           resolve,
-          reject
+          reject,
+          params
         );
       }
     });
@@ -261,7 +268,8 @@ export class TaskManager extends EventEmitter {
     msg: WorkerMessage & { type: "error" },
     startTime: number,
     resolve: (result: TaskResult) => void,
-    reject: (error: Error) => void
+    reject: (error: Error) => void,
+    params: Record<string, string>
   ): void {
     const taskKey = `${siteConfig.name}/${taskConfig.name}`;
     this.cleanup(run.id);
@@ -281,7 +289,7 @@ export class TaskManager extends EventEmitter {
       run.attempt += 1;
 
       setTimeout(() => {
-        this.spawnWorker(run, siteConfig, taskConfig, resolve, reject);
+      this.spawnWorker(run, siteConfig, taskConfig, resolve, reject, params);
       }, backoffMs);
     } else {
       const result: TaskResult = {
@@ -349,7 +357,8 @@ export class TaskManager extends EventEmitter {
         queued.siteConfig,
         queued.taskConfig,
         queued.resolve,
-        queued.reject
+        queued.reject,
+        queued.params
       );
     }
   }
