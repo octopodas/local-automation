@@ -69,6 +69,7 @@ CRITICAL: You MUST respond with ONLY a single JSON object. No text before or aft
 
 Guidelines:
 - Use CSS selectors from the DOM snapshot for reliable element targeting
+- For targeting elements by text, use Playwright's CSS extension \`:has-text("text")\` (e.g., \`button:has-text("Submit")\`) or Playwright's text selector engine (e.g., \`text="Submit"\`). Do NOT use jQuery's \`:contains()\` pseudo-class as it is not valid CSS or standard Playwright.
 - Use "extract" to pull data from the page, then "done" when you have all requested data
 - Use "download" to click a link/button that triggers a file download — the file is saved automatically
 - If login is required, use the provided credentials — type the username, then password, then click submit
