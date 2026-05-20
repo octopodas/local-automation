@@ -12,6 +12,15 @@ export interface ActionResult {
   error?: string;
 }
 
+function normalizeSelector(selector: string): string {
+  let normalized = selector.replace(/:contains\((['"]?)(.*?)\1\)/g, ':has-text("$2")');
+  const buttonHasTextRegex = /button:has-text\((['"]?)(.*?)\1\)/g;
+  if (buttonHasTextRegex.test(normalized)) {
+    normalized = normalized.replace(buttonHasTextRegex, 'role=button[name="$2"]');
+  }
+  return normalized;
+}
+
 /**
  * Execute an AI action against a Playwright page.
  * Returns the result of the action execution.
@@ -20,20 +29,23 @@ export async function executeAction(
   page: Page,
   action: AIAction
 ): Promise<ActionResult> {
+  if ("selector" in action && typeof action.selector === "string") {
+    (action as any).selector = normalizeSelector(action.selector);
+  }
   try {
     switch (action.action) {
       case "click": {
-        await page.click(action.selector, { timeout: 30000 });
+        await page.locator(action.selector).first().click({ timeout: 30000 });
         return { success: true };
       }
 
       case "type": {
-        await page.fill(action.selector, action.text, { timeout: 30000 });
+        await page.locator(action.selector).first().fill(action.text, { timeout: 30000 });
         return { success: true };
       }
 
       case "select": {
-        await page.selectOption(action.selector, action.value, { timeout: 30000 });
+        await page.locator(action.selector).first().selectOption(action.value, { timeout: 30000 });
         return { success: true };
       }
 
@@ -82,9 +94,7 @@ export async function executeAction(
             data = await element.innerHTML();
             break;
           case "table":
-            data = await page.evaluate((sel) => {
-              const table = document.querySelector(sel);
-              if (!table) return [];
+            data = await element.evaluate((table) => {
               const rows = table.querySelectorAll("tr");
               const headers: string[] = [];
               const result: Record<string, string>[] = [];
@@ -103,7 +113,7 @@ export async function executeAction(
               });
 
               return result;
-            }, action.selector);
+            });
             break;
         }
 
@@ -114,7 +124,7 @@ export async function executeAction(
         mkdirSync(DOWNLOADS_DIR, { recursive: true });
         const [download] = await Promise.all([
           page.waitForEvent("download", { timeout: 30000 }),
-          page.click(action.selector, { timeout: 30000 }),
+          page.locator(action.selector).first().click({ timeout: 30000 }),
         ]);
         const filename = download.suggestedFilename();
         const filePath = resolve(DOWNLOADS_DIR, filename);

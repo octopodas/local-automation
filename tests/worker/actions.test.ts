@@ -3,11 +3,19 @@ import { executeAction } from "../../src/worker/actions.js";
 import type { Page } from "playwright";
 
 function createMockPage(): Page {
-  return {
+  const mockLocator = {
+    first: vi.fn().mockReturnThis(),
+    click: vi.fn().mockResolvedValue(undefined),
+    fill: vi.fn().mockResolvedValue(undefined),
+    selectOption: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const page = {
     click: vi.fn().mockResolvedValue(undefined),
     fill: vi.fn().mockResolvedValue(undefined),
     selectOption: vi.fn().mockResolvedValue(undefined),
     goto: vi.fn().mockResolvedValue(undefined),
+    locator: vi.fn().mockReturnValue(mockLocator),
     mouse: {
       wheel: vi.fn().mockResolvedValue(undefined),
     },
@@ -15,10 +23,15 @@ function createMockPage(): Page {
     waitForSelector: vi.fn().mockResolvedValue({
       textContent: vi.fn().mockResolvedValue("Hello World"),
       innerHTML: vi.fn().mockResolvedValue("<b>Hello</b>"),
+      evaluate: vi.fn().mockResolvedValue([{ Name: "Alice", Score: "100" }]),
     }),
     screenshot: vi.fn().mockResolvedValue(Buffer.from("fake-screenshot")),
     evaluate: vi.fn().mockResolvedValue([{ Name: "Alice", Score: "100" }]),
   } as unknown as Page;
+
+  (page as any)._mockLocator = mockLocator;
+
+  return page;
 }
 
 describe("executeAction", () => {
@@ -29,7 +42,19 @@ describe("executeAction", () => {
       selector: "#btn",
     });
     expect(result.success).toBe(true);
-    expect(page.click).toHaveBeenCalledWith("#btn", { timeout: 30000 });
+    expect(page.locator).toHaveBeenCalledWith("#btn");
+    expect((page as any)._mockLocator.click).toHaveBeenCalledWith({ timeout: 30000 });
+  });
+
+  it("normalizes :contains selector to :has-text in click action", async () => {
+    const page = createMockPage();
+    const result = await executeAction(page, {
+      action: "click",
+      selector: "button:contains('Submit')",
+    });
+    expect(result.success).toBe(true);
+    expect(page.locator).toHaveBeenCalledWith('role=button[name="Submit"]');
+    expect((page as any)._mockLocator.click).toHaveBeenCalledWith({ timeout: 30000 });
   });
 
   it("handles type action", async () => {
@@ -40,7 +65,8 @@ describe("executeAction", () => {
       text: "test@example.com",
     });
     expect(result.success).toBe(true);
-    expect(page.fill).toHaveBeenCalledWith("#email", "test@example.com", {
+    expect(page.locator).toHaveBeenCalledWith("#email");
+    expect((page as any)._mockLocator.fill).toHaveBeenCalledWith("test@example.com", {
       timeout: 30000,
     });
   });
@@ -53,7 +79,8 @@ describe("executeAction", () => {
       value: "option1",
     });
     expect(result.success).toBe(true);
-    expect(page.selectOption).toHaveBeenCalledWith("#dropdown", "option1", {
+    expect(page.locator).toHaveBeenCalledWith("#dropdown");
+    expect((page as any)._mockLocator.selectOption).toHaveBeenCalledWith("option1", {
       timeout: 30000,
     });
   });
@@ -148,7 +175,7 @@ describe("executeAction", () => {
 
   it("handles click failure gracefully", async () => {
     const page = createMockPage();
-    (page.click as ReturnType<typeof vi.fn>).mockRejectedValue(
+    ((page as any)._mockLocator.click as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("Element not found")
     );
     const result = await executeAction(page, {
