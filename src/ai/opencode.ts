@@ -4,7 +4,10 @@ import type { TaskContext } from "../shared/types.js";
 import type { Logger } from "pino";
 
 const MAX_PARSE_RETRIES = 3;
-const OPENCODE_ZEN_URL = "https://opencode.ai/zen/v1/chat/completions";
+// OpenCode Go (paid tier) — https://opencode.ai/zen/go/v1
+// Separate endpoint from the free OpenCode Zen gateway. Auth uses
+// OPENCODE_GO_API_KEY (not OPEN_CODE_ZEN_KEY).
+const OPENCODE_GO_URL = "https://opencode.ai/zen/go/v1/chat/completions";
 
 interface ChatCompletionResponse {
   choices?: Array<{
@@ -17,15 +20,16 @@ interface ChatCompletionResponse {
 }
 
 /**
- * Provider for OpenCode Zen — a gateway offering a curated set of models
- * through an OpenAI-compatible /chat/completions endpoint.
+ * Provider for OpenCode Go — the paid-tier gateway at /zen/go/v1.
+ * OpenAI-compatible /chat/completions endpoint offering a curated set
+ * of models (including minimax-m3).
  *
- * Use any vision-capable model available in your Zen subscription
- * (e.g. "glm-4.5v", "minimax-m2.5"). Non-vision models will fail because
- * this agent sends a screenshot on every turn.
+ * Use any vision-capable model available in your Go subscription.
+ * Non-vision models will fail because this agent sends a screenshot on
+ * every turn.
  *
- * Auth: set OPEN_CODE_ZEN_KEY in your environment.
- * Docs: https://opencode.ai/docs/zen/
+ * Auth: set OPENCODE_GO_API_KEY in your environment.
+ * Docs: https://opencode.ai/docs/go/
  */
 export class OpenCodeProvider implements AIProvider {
   private apiKey: string;
@@ -33,9 +37,9 @@ export class OpenCodeProvider implements AIProvider {
   private logger: Logger;
 
   constructor(model: string, logger: Logger) {
-    const apiKey = process.env.OPEN_CODE_ZEN_KEY;
+    const apiKey = process.env.OPENCODE_GO_API_KEY;
     if (!apiKey) {
-      throw new Error("OPEN_CODE_ZEN_KEY environment variable is not set");
+      throw new Error("OPENCODE_GO_API_KEY environment variable is not set");
     }
     this.apiKey = apiKey;
     this.model = model;
@@ -71,7 +75,7 @@ export class OpenCodeProvider implements AIProvider {
 
     for (let attempt = 0; attempt < MAX_PARSE_RETRIES; attempt++) {
       try {
-        const res = await fetch(OPENCODE_ZEN_URL, {
+        const res = await fetch(OPENCODE_GO_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
