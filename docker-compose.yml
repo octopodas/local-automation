@@ -1,0 +1,26 @@
+services:
+  local-auto:
+    build: .
+    container_name: local-auto
+    ports:
+      - "3847:3847"
+    # Run as the host user so the daemon's auth-token (written to
+    # /home/pwuser/.local-auto inside the container) is readable by the
+    # CLI on the host (which reads ~/.local-auto/auth-token). pwuser
+    # already exists in the Playwright base image with uid=1000.
+    user: "1000:1000"
+    volumes:
+      # Mount config and credentials from host
+      - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
+      # Share the host's ~/.local-auto with the container so daemon and
+      # CLI see the same auth-token, state, and sessions. Host and
+      # container both use uid 1000 here.
+      - ~/.local-auto:/home/pwuser/.local-auto
+    environment:
+      # Daemon already binds to 0.0.0.0 via config.yaml for Docker
+      - NODE_ENV=production
+      # Force HOME so os.homedir() returns /home/pwuser even if /etc/passwd
+      # lookup differs. Defensive: matches the volume mount target.
+      - HOME=/home/pwuser
+    restart: unless-stopped
