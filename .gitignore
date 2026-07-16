@@ -2,6 +2,7 @@ node_modules/
 dist/
 results/
 .env
+.env.bak
 *.log
 start-daemon.sh
 config.yaml
