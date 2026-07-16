@@ -20,10 +20,25 @@ export interface AIProvider {
  * Retries extraction up to maxRetries times if JSON is malformed.
  */
 export function parseAIResponse(raw: string): AIAction {
-  // Try to extract JSON from the response (AI may wrap it in markdown code blocks)
+  // Try to extract JSON from the response (AI may wrap it in markdown code blocks,
+  // and some models — like MiniMax M3 — emit a <think>...</think> reasoning block
+  // *before* the JSON. Strip those out first, otherwise JSON.parse throws on the
+  // "<think>" prefix and the whole task fails.)
   let jsonStr = raw.trim();
 
-  // Strip markdown code fences if present
+  // 1. Strip <think>...</think> reasoning blocks (MiniMax, DeepSeek R1, etc.)
+  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+  // 2. If the response still has a stray leading <think> with no closing tag
+  //    (truncated output), cut everything up to the first '{' or '['.
+  if (/^<think>/i.test(jsonStr)) {
+    jsonStr = jsonStr.replace(/^<think>[\s\S]*/i, (m) => {
+      const firstBrace = m.search(/[{[]/);
+      return firstBrace >= 0 ? m.slice(firstBrace) : "";
+    });
+  }
+
+  // 3. Strip markdown code fences if present
   const jsonMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
