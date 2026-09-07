@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { AIProvider, AIResponse } from "./provider.js";
 import { parseAIResponse, buildSystemPrompt, buildUserMessage } from "./provider.js";
 import type { TaskContext } from "../shared/types.js";
@@ -32,6 +33,8 @@ interface ChatCompletionResponse {
  * Docs: https://opencode.ai/docs/go/
  */
 export class OpenCodeProvider implements AIProvider {
+  // One provider per task execution; reuse the session across steps and retries.
+  private readonly sessionId = randomUUID();
   private apiKey: string;
   private model: string;
   private logger: Logger;
@@ -79,6 +82,8 @@ export class OpenCodeProvider implements AIProvider {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "User-Agent": "local-auto/0.1.0",
+            "x-opencode-session": this.sessionId,
             Authorization: `Bearer ${this.apiKey}`,
           },
           body: JSON.stringify(body),
