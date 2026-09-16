@@ -27,6 +27,8 @@ The example environment and YAML files, plus the README setup instructions, will
 
 Create `src/ai/openai.ts` with an `OpenAIProvider` class implementing the existing `AIProvider` interface. `createAIProvider()` will dynamically import it when `ai.provider` is `openai`, preserving the current lazy-loading pattern.
 
+The SDK client will explicitly pin `https://api.openai.com/v1`, disable SDK logging, and disable its internal retries. This prevents environment-level SDK settings from redirecting dashboard data or logging screenshots/DOM, and leaves the provider's three-attempt loop as the sole retry mechanism.
+
 For each browser-agent iteration, the provider will:
 
 1. Build the existing shared system prompt and user message.
@@ -40,7 +42,7 @@ The initial integration will not add OpenAI-specific reasoning controls, convers
 
 ## Error Handling
 
-The provider will follow the existing provider behavior: retry up to three times when the API call fails, returns no text, or produces an invalid action. Each failed attempt will be logged at warning level without logging the API key, screenshot, or full DOM. After the final attempt, it will throw an error that includes the last failure message.
+The provider will follow the existing provider behavior: retry up to three times when the API call fails, returns no text, or produces an invalid action. Each failed attempt will be logged at warning level without logging the API key, screenshot, full DOM, or raw model output. After the final attempt, it will throw a sanitized failure category instead of including raw model output.
 
 Authentication, quota, model-access, and other API failures are therefore visible through the existing worker failure path. No provider-specific fallback will silently route requests to another vendor.
 
@@ -53,9 +55,11 @@ Add the official `openai` package as a runtime dependency. No other new package 
 Implementation will follow red-green-refactor. Focused tests will cover:
 
 - rejecting construction when `OPENAI_API_KEY` is absent;
+- pinning the official API endpoint and disabling SDK logging and internal retries;
 - sending the configured model, shared instructions, screenshot data URL, user message, and `store: false`;
 - parsing a valid OpenAI text response into an `AIAction`;
 - retrying transient/API, empty-output, and malformed-action failures up to the existing limit;
+- not logging or surfacing raw malformed model output;
 - accepting `provider: openai` in configuration; and
 - selecting `OpenAIProvider` through the provider factory.
 

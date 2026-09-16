@@ -10,6 +10,14 @@ import {
 
 const MAX_PARSE_RETRIES = 3;
 
+function safeFailureMessage(error: unknown): string {
+  if (error instanceof Error && error.message === "No text response from OpenAI") {
+    return error.message;
+  }
+
+  return "OpenAI request or response failed";
+}
+
 export class OpenAIProvider implements AIProvider {
   private client: OpenAI;
   private model: string;
@@ -21,7 +29,12 @@ export class OpenAIProvider implements AIProvider {
       throw new Error("OPENAI_API_KEY environment variable is not set");
     }
 
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: "https://api.openai.com/v1",
+      logLevel: "off",
+      maxRetries: 0,
+    });
     this.model = model;
     this.logger = logger;
   }
@@ -59,7 +72,7 @@ export class OpenAIProvider implements AIProvider {
 
         return { action: parseAIResponse(response.output_text) };
       } catch (err) {
-        lastError = err as Error;
+        lastError = new Error(safeFailureMessage(err));
         this.logger.warn(
           { attempt: attempt + 1, error: lastError.message },
           "OpenAI response failed, retrying"

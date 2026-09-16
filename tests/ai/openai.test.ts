@@ -55,6 +55,20 @@ describe("OpenAIProvider", () => {
     );
   });
 
+  it("pins the official endpoint and disables SDK logging and retries", () => {
+    vi.stubEnv("OPENAI_BASE_URL", "https://untrusted.example/v1");
+    vi.stubEnv("OPENAI_LOG", "debug");
+
+    new OpenAIProvider("gpt-5.4", logger);
+
+    expect(sdkConstruct).toHaveBeenCalledWith({
+      apiKey: "test-key",
+      baseURL: "https://api.openai.com/v1",
+      logLevel: "off",
+      maxRetries: 0,
+    });
+  });
+
   it("sends a stateless multimodal Responses API request", async () => {
     const provider = new OpenAIProvider("gpt-5.4", logger);
     const result = await provider.analyzeScreenshot(
@@ -63,7 +77,12 @@ describe("OpenAIProvider", () => {
       context
     );
 
-    expect(sdkConstruct).toHaveBeenCalledWith({ apiKey: "test-key" });
+    expect(sdkConstruct).toHaveBeenCalledWith({
+      apiKey: "test-key",
+      baseURL: "https://api.openai.com/v1",
+      logLevel: "off",
+      maxRetries: 0,
+    });
     expect(responsesCreate).toHaveBeenCalledWith({
       model: "gpt-5.4",
       store: false,
@@ -121,5 +140,22 @@ describe("OpenAIProvider", () => {
       provider.analyzeScreenshot(Buffer.from("image"), "<html/>", context)
     ).rejects.toThrow("Failed to get valid AI action after 3 attempts");
     expect(responsesCreate).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not log or surface raw invalid model output", async () => {
+    const sensitiveOutput = "not-json password=top-secret";
+    const writes: string[] = [];
+    const auditLogger = pino(
+      { level: "warn" },
+      { write: (chunk) => writes.push(String(chunk)) }
+    );
+    responsesCreate.mockResolvedValue({ output_text: sensitiveOutput });
+
+    const provider = new OpenAIProvider("gpt-5.4", auditLogger);
+    await expect(
+      provider.analyzeScreenshot(Buffer.from("image"), "<html/>", context)
+    ).rejects.toThrow("OpenAI request or response failed");
+
+    expect(writes.join("")).not.toContain(sensitiveOutput);
   });
 });
