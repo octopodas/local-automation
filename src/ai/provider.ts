@@ -44,11 +44,37 @@ export function parseAIResponse(raw: string): AIAction {
     jsonStr = jsonMatch[1].trim();
   }
 
+  // 4. Extract the outermost JSON object/array (handles models that emit
+  //    prose before/after the JSON). If extraction fails, fall through to
+  //    raw JSON.parse on the cleaned string.
+  const extracted = extractOutermostJson(jsonStr);
+  if (extracted !== null) {
+    jsonStr = extracted;
+  }
+
+  // 5. Last-resort fixup: if the string still contains literal newlines
+  //    inside a quoted value (AI didn't escape \n), JSON.parse will choke.
+  //    Try parsing as-is first, then fall back to escaping unescaped newlines
+  //    inside double-quoted strings.
   let parsed: unknown;
   try {
     parsed = JSON.parse(jsonStr);
   } catch {
-    throw new Error(`Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}`);
+    const repaired = escapeUnescapedNewlinesInStrings(jsonStr);
+    if (repaired !== jsonStr) {
+      try {
+        parsed = JSON.parse(repaired);
+        jsonStr = repaired;
+      } catch {
+        throw new Error(
+          `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}`
+        );
+      }
+    } else {
+      throw new Error(
+        `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}`
+      );
+    }
   }
 
   const result = aiActionSchema.safeParse(parsed);
@@ -152,4 +178,88 @@ export async function createAIProvider(
     const { OpenCodeProvider } = await import("./opencode.js");
     return new OpenCodeProvider(model, logger);
   }
+}
+
+/**
+ * Extract the outermost balanced JSON object or array from a string.
+ * Returns null if no balanced structure starting with { or [ is found.
+ */
+function extractOutermostJson(input: string): string | null {
+  const start = input.search(/[{[]/);
+  if (start === -1) return null;
+
+  const openChar = input[start];
+  const closeChar = openChar === "{" ? "}" : "]";
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < input.length; i++) {
+    const ch = input[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (inString) {
+      if (ch === "\\") {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === openChar) {
+      depth++;
+    } else if (ch === closeChar) {
+      depth--;
+      if (depth === 0) {
+        return input.slice(start, i + 1);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Replace literal newlines and tabs inside double-quoted JSON string values
+ * with their escaped forms. Preserves already-escaped sequences. Used as a
+ * last-resort fixup for AI responses where the model forgot to escape \n.
+ */
+function escapeUnescapedNewlinesInStrings(input: string): string {
+  let out = "";
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (escape) {
+      out += ch;
+      escape = false;
+      continue;
+    }
+    if (inString) {
+      if (ch === "\\") {
+        out += ch;
+        escape = true;
+      } else if (ch === '"') {
+        out += ch;
+        inString = false;
+      } else if (ch === "\n") {
+        out += "\\n";
+      } else if (ch === "\r") {
+        out += "\\r";
+      } else if (ch === "\t") {
+        out += "\\t";
+      } else {
+        out += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    }
+    out += ch;
+  }
+  return out;
 }

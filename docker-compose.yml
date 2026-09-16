@@ -23,4 +23,9 @@ services:
       # Force HOME so os.homedir() returns /home/pwuser even if /etc/passwd
       # lookup differs. Defensive: matches the volume mount target.
       - HOME=/home/pwuser
+      # node-cron evaluates schedules in the timezone given by TZ. Without
+      # this, the container defaults to UTC and the "0 9,22 * * *" schedule
+      # fires at 09:00 UTC (= 11:00 CEST) and 22:00 UTC (= 00:00 CEST),
+      # not at the wall-clock times the user expects.
+      - TZ=Europe/Warsaw
     restart: unless-stopped
