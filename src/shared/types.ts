@@ -56,7 +56,7 @@ export interface DaemonConfig {
 }
 
 export interface AIConfig {
-  provider: "anthropic" | "gemini" | "opencode";
+  provider: "anthropic" | "gemini" | "opencode" | "openai";
   model: string;
   maxIterations: number;
 }

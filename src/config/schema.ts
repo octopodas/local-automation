@@ -42,7 +42,7 @@ export const daemonSchema = z.object({
 });
 
 export const aiSchema = z.object({
-  provider: z.enum(["anthropic", "gemini", "opencode"]),
+  provider: z.enum(["anthropic", "gemini", "opencode", "openai"]),
   model: z.string().min(1),
   maxIterations: z.number().int().min(1).default(20),
 });

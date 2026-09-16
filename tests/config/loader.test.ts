@@ -132,6 +132,28 @@ sites:
     expect(configDir).toBe(tmpDir);
   });
 
+  it("accepts openai as an AI provider", () => {
+    const configPath = join(tmpDir, "config.yaml");
+    writeFileSync(
+      configPath,
+      `
+ai:
+  provider: openai
+  model: gpt-5.4
+sites:
+  - name: test-site
+    url: https://example.com
+    tasks:
+      - name: test-task
+        prompt: "Extract data"
+`
+    );
+
+    const { config } = loadConfig(configPath);
+    expect(config.ai.provider).toBe("openai");
+    expect(config.ai.model).toBe("gpt-5.4");
+  });
+
   it("resolves env vars in config", () => {
     const configPath = join(tmpDir, "config.yaml");
     writeFileSync(
