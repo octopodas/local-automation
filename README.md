@@ -1,6 +1,6 @@
 # local-auto
 
-AI-driven browser automation CLI tool for extracting data from web dashboards. Uses Playwright for browser control and AI (Anthropic Claude or Google Gemini) to navigate pages and extract structured data.
+AI-driven browser automation CLI tool for extracting data from web dashboards. Uses Playwright for browser control and AI (Anthropic Claude, Google Gemini, OpenAI, or OpenCode Go) to navigate pages and extract structured data.
 
 ## How it works
 
@@ -9,7 +9,7 @@ A long-running daemon manages scheduled tasks. Each task spawns an isolated work
 ## Prerequisites
 
 - Node.js 20+
-- An API key for [Anthropic](https://console.anthropic.com/) or [Google Gemini](https://aistudio.google.com/apikey)
+- An API key for [Anthropic](https://console.anthropic.com/), [Google Gemini](https://aistudio.google.com/apikey), [OpenAI](https://platform.openai.com/api-keys), or OpenCode Go
 
 ## Installation
 
@@ -39,6 +39,8 @@ Edit `.env` and add your AI provider key:
 ANTHROPIC_API_KEY=sk-ant-...
 # or
 GEMINI_API_KEY=AI...
+# or
+OPENAI_API_KEY=sk-...
 ```
 
 Add any site credentials referenced in your config:
@@ -63,7 +65,7 @@ daemon:
   maxConcurrentWorkers: 2
 
 ai:
-  provider: anthropic       # "anthropic" or "gemini"
+  provider: anthropic       # "anthropic", "gemini", "opencode", or "openai"
   model: claude-sonnet-4-6  # provider-specific model name
   maxIterations: 20
 
@@ -88,6 +90,8 @@ sites:
           maxAttempts: 3
           backoffMs: 5000
 ```
+
+For OpenAI, set `provider: openai`, choose a vision-capable OpenAI model such as `gpt-5.4`, and set `OPENAI_API_KEY` in `.env`. The integration uses OpenAI's Responses API with response storage disabled.
 
 Credentials use `${VAR_NAME}` syntax to reference environment variables from `.env`.
 
