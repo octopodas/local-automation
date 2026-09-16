@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseAIResponse, buildSystemPrompt, buildUserMessage } from "../../src/ai/provider.js";
+import pino from "pino";
+import {
+  parseAIResponse,
+  buildSystemPrompt,
+  buildUserMessage,
+  createAIProvider,
+} from "../../src/ai/provider.js";
 import type { TaskContext } from "../../src/shared/types.js";
 
 describe("parseAIResponse", () => {
@@ -196,5 +202,24 @@ describe("buildUserMessage", () => {
   it("includes DOM snapshot", () => {
     const msg = buildUserMessage("<div>test content</div>", baseContext);
     expect(msg).toContain("test content");
+  });
+});
+
+describe("createAIProvider", () => {
+  it("selects the OpenAI provider", async () => {
+    const previousKey = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "test-key";
+
+    try {
+      const provider = await createAIProvider(
+        "openai" as never,
+        "gpt-5.4",
+        pino({ level: "silent" })
+      );
+      expect(provider.constructor.name).toBe("OpenAIProvider");
+    } finally {
+      if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previousKey;
+    }
   });
 });

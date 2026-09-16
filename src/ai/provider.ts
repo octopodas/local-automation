@@ -163,7 +163,7 @@ export function buildUserMessage(dom: string, context: TaskContext): string {
 }
 
 export async function createAIProvider(
-  provider: "anthropic" | "gemini" | "opencode",
+  provider: "anthropic" | "gemini" | "opencode" | "openai",
   model: string,
   logger: Logger
 ): Promise<AIProvider> {
@@ -174,6 +174,9 @@ export async function createAIProvider(
   } else if (provider === "gemini") {
     const { GeminiProvider } = await import("./gemini.js");
     return new GeminiProvider(model, logger);
+  } else if (provider === "openai") {
+    const { OpenAIProvider } = await import("./openai.js");
+    return new OpenAIProvider(model, logger);
   } else {
     const { OpenCodeProvider } = await import("./opencode.js");
     return new OpenCodeProvider(model, logger);
