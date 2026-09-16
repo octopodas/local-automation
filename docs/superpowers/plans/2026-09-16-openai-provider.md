@@ -12,10 +12,12 @@
 
 - Target OpenAI's official API only through the official JavaScript SDK and Responses API.
 - Authenticate only with `OPENAI_API_KEY`; do not add configurable base URLs.
+- Pin the SDK to `https://api.openai.com/v1`, set `logLevel: "off"`, and set `maxRetries: 0`.
 - Set `store: false` on every request.
 - Keep requests stateless and rely on the action history already included by `buildUserMessage()`.
 - Retry API, empty-output, and invalid-action failures at most three times.
 - Do not log credentials, screenshots, or full DOM snapshots.
+- Do not log or surface raw model output in retry errors.
 - Do not change Anthropic, Gemini, or OpenCode behavior.
 - Do not add reasoning controls, conversation persistence, tool calls, fallback routing, or model-selection logic.
 
