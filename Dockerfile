@@ -22,6 +22,24 @@ RUN npx playwright install chromium --with-deps
 RUN mkdir -p /home/pwuser/.local-auto/sessions \
  && chown -R pwuser:pwuser /home/pwuser
 
+# Install tzdata so node-cron evaluates schedules in the timezone we set
+# via the TZ env var in docker-compose.yml. Without this, glibc falls back
+# to UTC regardless of TZ. DEBIAN_FRONTEND=noninteractive and a default
+# TZ suppress tzdata's interactive prompts during the build.
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Warsaw
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tzdata \
+ && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+ && echo $TZ > /etc/timezone \
+ && rm -rf /var/lib/apt/lists/*
+
+# Ensure the daemon's working directory (and the in-image /app/results
+# path it writes to) is owned by pwuser. Otherwise the daemon, which runs
+# as uid 1000, cannot create /app/results/<site>/<task>/ and every run
+# fails with EACCES even though the Telegram notification still goes out.
+RUN chown -R pwuser:pwuser /app
+
 # Expose daemon port
 EXPOSE 3847
 
